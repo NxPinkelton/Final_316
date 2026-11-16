@@ -1,6 +1,8 @@
 import java.io.File;
 import java.io.FileInputStream;
 
+import static java.lang.System.out;
+
 public class TCPFileServerData {
     private static class ClientHandler implements Runnable {
         @Override
@@ -19,7 +21,7 @@ public class TCPFileServerData {
                     }
                 }
             } else {
-                System.out.println("Error: File not found on server");
+                out.println("Error: File not found on server");
                 // Status code
                 out.write('F');
             }
