@@ -1,15 +1,20 @@
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketException;
+import java.util.Arrays;
 import java.util.Scanner;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 
-public class TCPServer {public static void main(String[] args)  {
+public class TCPServer {
+    protected static File serverFiles = new File("/Users/nathanpinkelton/Desktop/CS316/Final_316/src/ServerFiles"); //?
+
+    public static void main(String[] args)  {
     int serverPort = 3000;
     int numThreads = 10;
     ExecutorService es = Executors.newFixedThreadPool(numThreads);
@@ -38,6 +43,7 @@ public class TCPServer {public static void main(String[] args)  {
         public void run() {
             try {
                 String message = "";
+                byte[] reply;
 
                 System.out.println("Client connected: " + listenSocket.getInetAddress());
 
@@ -50,11 +56,13 @@ public class TCPServer {public static void main(String[] args)  {
                 while ((bytesRead = in.read(buffer)) != -1) { // -1 means that bytes r done being read
                     message = new String(buffer, 0, bytesRead);
                     System.out.println("Client message: " + message);
-                    byte[] reply = message.toUpperCase().getBytes();
-//                    out.write(reply);
+                    reply = message.toUpperCase().getBytes();
+                    out.write(reply);
                 }
+
+                // Start of menu
                 if (message.equalsIgnoreCase("List")) {
-                    listServerFiles(message);
+                    listServerFiles(out);
                 }
                 listenSocket.close();
             } catch (IOException e) {
@@ -62,9 +70,19 @@ public class TCPServer {public static void main(String[] args)  {
             }
         }
 
-        private void listServerFiles(String message) {
+        public void listServerFiles(OutputStream out) {
+            File[] files = serverFiles.listFiles();
 
+            for (int i = 0; i < files.length; i++) {
+                System.out.println(files[i].getName());
+                try {
+                    out.write(files[i].getName().getBytes());
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            }
         }
+
     }
 
     private static class KeyboardMonitor implements Runnable {
@@ -89,5 +107,7 @@ public class TCPServer {public static void main(String[] args)  {
             }
         }
     }
+
+
 }
 
