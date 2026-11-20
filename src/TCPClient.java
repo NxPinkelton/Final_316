@@ -7,6 +7,7 @@ import java.util.Scanner;
 public class TCPClient {
 public static void main(String[] args) throws IOException {
 
+    boolean keepGoing = true;
     TCPServer server = new TCPServer();
 
     if (args.length != 2) {
@@ -16,7 +17,8 @@ public static void main(String[] args) throws IOException {
     String serverIP = args[0];
     int serverPort = Integer.parseInt(args[1]);
 
-    while (true) {
+    while (keepGoing) {
+        menu();
         Scanner keyboard = new Scanner(System.in);
         String input = keyboard.nextLine();
         byte[] data = input.getBytes();
@@ -36,15 +38,21 @@ public static void main(String[] args) throws IOException {
             String reply = new String(buffer, 0, bytesRead);
             System.out.println(reply);
         }
-        // Come back to move
+
+        if (input.equalsIgnoreCase("2")) {
+            System.out.println("Enter File name to Delete: ");
+            String fileName = keyboard.nextLine();
+            out.write(fileName.getBytes());
+        }
+
         if (input.equalsIgnoreCase("q")) {
             socket.close();
-            break;
+            keepGoing = false;
         }
     }
 }
 
-public void menu() {
+public static void menu() {
     System.out.println("Please pick an option:");
     System.out.println("1: List\n2. Delete\n3. Rename\n4. Download\n5. Upload\n6. Quit");
 }

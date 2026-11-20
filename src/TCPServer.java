@@ -15,23 +15,24 @@ public class TCPServer {
     protected static File serverFiles = new File("/Users/nathanpinkelton/Desktop/CS316/Final_316/src/ServerFiles"); //?
 
     public static void main(String[] args)  {
-    int serverPort = 3000;
-    int numThreads = 10;
-    ExecutorService es = Executors.newFixedThreadPool(numThreads);
-    try (ServerSocket listenSocket = new ServerSocket(serverPort)){ // try with resource!
-        es.submit(new KeyboardMonitor(listenSocket));
+        boolean keepGoing = true;
+        int serverPort = 3000;
+        int numThreads = 10;
+        ExecutorService es = Executors.newFixedThreadPool(numThreads);
+        try (ServerSocket listenSocket = new ServerSocket(serverPort)){ // try with resource!
+            es.submit(new KeyboardMonitor(listenSocket));
 
-        while (true) {
-            // wait for a client to connect
-            Socket clientSocket = listenSocket.accept();
-            es.submit(new ClientHandler(clientSocket));
+            while (keepGoing) {
+                // wait for a client to connect
+                Socket clientSocket = listenSocket.accept();
+                es.submit(new ClientHandler(clientSocket));
+            }
+        } catch (SocketException e) {
+            es.shutdown();
+        } catch (IOException e) {
+            e.printStackTrace();
         }
-    } catch (SocketException e) {
-        es.shutdown();
-    } catch (IOException e) {
-        e.printStackTrace();
     }
-}
 
     private static class ClientHandler implements Runnable {
         private final Socket listenSocket;
@@ -55,20 +56,27 @@ public class TCPServer {
 
                 while ((bytesRead = in.read(buffer)) != -1) { // -1 means that bytes r done being read
                     message = new String(buffer, 0, bytesRead);
-                    System.out.println("Client message: " + message);
-                    reply = message.toUpperCase().getBytes();
-                    out.write(reply);
+
                 }
 
                 // Start of menu
-                if (message.equalsIgnoreCase("List")) {
+                if (message.equalsIgnoreCase("1")) {
                     listServerFiles(out);
                 }
+                if (message.equalsIgnoreCase("2")){ // Parse client's response, get trigger and file name
+                    String fileName = "";
+                    while ((bytesRead = in.read(buffer)) != -1) { // -1 means that bytes r done being read
+                        fileName = new String(buffer, 0, bytesRead);
+                    }
+                    deleteServerFile(fileName, out);
+                }
                 listenSocket.close();
-            } catch (IOException e) {
+            }catch (IOException e) {
                 e.printStackTrace();
             }
         }
+
+//
 
         public void listServerFiles(OutputStream out) {
             File[] files = serverFiles.listFiles();
@@ -80,6 +88,21 @@ public class TCPServer {
                 } catch (IOException e) {
                     throw new RuntimeException(e);
                 }
+            }
+        }
+
+        public void deleteServerFile(String message, OutputStream out) throws IOException {
+            String fileName = message;
+            File fileToDelete = new File(serverFiles + "/" + message);
+            boolean isDeleted = serverFiles.delete();
+            byte status;
+            if (isDeleted) {
+                status = 1;
+                out.write(status);
+            }
+            else {
+                status = 0;
+                out.write(status);
             }
         }
 
