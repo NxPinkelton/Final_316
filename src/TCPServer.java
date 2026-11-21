@@ -5,7 +5,6 @@ import java.io.OutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketException;
-import java.util.Arrays;
 import java.util.Scanner;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -14,19 +13,21 @@ import java.util.concurrent.Executors;
 public class TCPServer {
     protected static File serverFiles = new File("ServerFiles"); //?
 
-    public static void main(String[] args)  {
-        boolean keepGoing = true;
+    static void main(String[] args)  {
         int serverPort = 3000;
         int numThreads = 10;
         ExecutorService es = Executors.newFixedThreadPool(numThreads);
+
         try (ServerSocket listenSocket = new ServerSocket(serverPort)){ // try with resource!
             es.submit(new KeyboardMonitor(listenSocket));
 
+            boolean keepGoing = true;
             while (keepGoing) {
                 // wait for a client to connect
                 Socket clientSocket = listenSocket.accept();
                 es.submit(new ClientHandler(clientSocket));
             }
+
         } catch (SocketException e) {
             es.shutdown();
         } catch (IOException e) {
@@ -46,8 +47,6 @@ public class TCPServer {
                 String message = "";
                 byte[] reply;
 
-                System.out.println("Client connected: " + listenSocket.getInetAddress());
-
                 InputStream in = listenSocket.getInputStream();
                 OutputStream out = listenSocket.getOutputStream();
 
@@ -56,33 +55,30 @@ public class TCPServer {
 
                 while ((bytesRead = in.read(buffer)) != -1) { // -1 means that bytes r done being read
                     message = new String(buffer, 0, bytesRead);
-
                 }
+                String[] parts = message.split(":");
+                String command = parts[0];
 
                 // Start of menu
-                if (message.equalsIgnoreCase("1")) {
+                if (command.equals("1")) {
                     listServerFiles(out);
                 }
-                if (message.equalsIgnoreCase("2")){ // Parse client's response, get trigger and file name
-                    String fileName = "";
-                    while ((bytesRead = in.read(buffer)) != -1) { // -1 means that bytes r done being read
-                        fileName = new String(buffer, 0, bytesRead);
-                    }
+                else if (command.equals("2")){ // Parse client's response, get trigger and file name
+                    String fileName = parts[1];
                     deleteServerFile(fileName, out);
                 }
+
                 listenSocket.close();
+
             }catch (IOException e) {
                 e.printStackTrace();
             }
         }
 
-//
-
         public void listServerFiles(OutputStream out) {
             File[] files = serverFiles.listFiles();
 
             for (int i = 0; i < files.length; i++) {
-                System.out.println(files[i].getName());
                 try {
                     out.write(files[i].getName().getBytes());
                 } catch (IOException e) {
@@ -91,21 +87,21 @@ public class TCPServer {
             }
         }
 
-        public void deleteServerFile(String message, OutputStream out) throws IOException {
-            String fileName = message;
-            File fileToDelete = new File(serverFiles + "/" + message);
-            boolean isDeleted = serverFiles.delete();
-            byte status;
+        public void deleteServerFile(String fileName, OutputStream out) throws IOException {
+            File fileToDelete = new File(serverFiles + "/" + fileName);
+
+            boolean isDeleted = fileToDelete.delete();
+            String status = "";
+
             if (isDeleted) {
-                status = 1;
-                out.write(status);
+                status = "S";
+                out.write(status.getBytes());
             }
             else {
-                status = 0;
-                out.write(status);
+                status = "F";
+                out.write(status.getBytes());
             }
         }
-
     }
 
     private static class KeyboardMonitor implements Runnable {
@@ -130,7 +126,5 @@ public class TCPServer {
             }
         }
     }
-
-
 }
 
