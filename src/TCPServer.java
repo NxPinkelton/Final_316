@@ -12,7 +12,7 @@ import java.util.concurrent.Executors;
 
 
 public class TCPServer {
-    protected static File serverFiles = new File("/Users/nathanpinkelton/Desktop/CS316/Final_316/src/ServerFiles"); //?
+    protected static File serverFiles = new File("ServerFiles"); //?
 
     public static void main(String[] args)  {
         boolean keepGoing = true;
