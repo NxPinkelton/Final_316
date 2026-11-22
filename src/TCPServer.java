@@ -1,7 +1,4 @@
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
+import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketException;
@@ -72,6 +69,10 @@ public class TCPServer {
                     String newName = parts[2];
                     renameFile(currentFile,newName,out);
                 }
+                else if (command.equals("4")) {
+                    String fileName = parts[1];
+                    downloadFile(fileName, out);
+                }
 
                 listenSocket.close();
 
@@ -120,6 +121,26 @@ public class TCPServer {
             else {
                 out.write("N".getBytes());
             }
+        }
+
+        public void downloadFile(String fileName, OutputStream out) throws IOException {
+            File fileToSend = new File(serverFiles, fileName);
+            byte[] buffer = new byte[1024];
+            int bytesRead;
+
+            if (fileToSend.exists() && !fileToSend.isDirectory()) {
+                out.write('D');
+
+                try (FileInputStream fis = new FileInputStream(fileToSend)) {
+                    while ((bytesRead = fis.read(buffer)) != -1) {
+                        out.write(buffer, 0, bytesRead);
+                    }
+                }
+
+            } else {
+                out.write('X');
+            }
+
         }
     }
 

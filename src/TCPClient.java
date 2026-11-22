@@ -1,84 +1,113 @@
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
+import java.io.*;
 import java.net.Socket;
 import java.util.Scanner;
 
 public class TCPClient {
-static void main(String[] args) throws IOException {
-    if (args.length != 2) {
-        System.out.println("Need two arguments: serverIP and serverPort.");
-        return;
+    static void main(String[] args) throws IOException {
+        if (args.length != 2) {
+            System.out.println("Need two arguments: serverIP and serverPort.");
+            return;
+        }
+        String serverIP = args[0];
+        int serverPort = Integer.parseInt(args[1]);
+
+        Scanner keyboard = new Scanner(System.in);
+
+        boolean keepGoing = true;
+
+        while (keepGoing) {
+            menu();
+            String input = keyboard.nextLine().trim();
+            //checks for valid inputs
+            if (input.equals("6")) {
+                break;
+            }
+
+            if (!input.matches("[1-5]")) {
+                System.out.println("Invalid choice.");
+                continue;
+            }
+
+            String message = "";
+            String fileName = "";
+
+            //handles all the data to send to the sever
+            if (input.equals("1")) {
+                message = "1";
+            }
+            else if (input.equals("2")) {
+                System.out.print("Enter file name to delete: ");
+                fileName = keyboard.nextLine().trim();
+                message = "2:" + fileName;
+            }
+            else if (input.equals("3")) {
+                System.out.print("Current file: ");
+                String currentFile = keyboard.nextLine().trim();
+                System.out.print("New name: ");
+                String newName = keyboard.nextLine().trim();
+                message = "3:" + currentFile + ":" + newName;
+            }
+            else if (input.equals("4")) {
+                System.out.print("Enter file name to download: ");
+                fileName = keyboard.nextLine().trim();
+                message = "4:" + fileName;
+            }
+
+            try (Socket socket = new Socket(serverIP, serverPort)) {
+                InputStream in = socket.getInputStream();
+                OutputStream out = socket.getOutputStream();
+
+                out.write(message.getBytes());
+
+                socket.shutdownOutput();
+
+                //handles all reply data
+                if (input.equals("1")) {
+                    String reply = "";
+                    byte[] buffer = new byte[1024];
+                    int bytesRead;
+                    while ((bytesRead = in.read(buffer)) != -1) {
+                        reply += new String(buffer, 0, bytesRead);
+                    }
+                    System.out.print(reply);
+
+                }
+                else if (input.equals("4")) {
+                    int status = in.read();
+                    if (status == 'D') {
+                        File outFile = new File("ClientFiles", fileName);
+
+                        try (FileOutputStream fos = new FileOutputStream(outFile)) {
+                            byte[] buffer = new byte[1024];
+                            int bytesRead;
+                            while ((bytesRead = in.read(buffer)) != -1) {
+                                fos.write(buffer, 0, bytesRead);
+                            }
+                        }
+                        System.out.println("Download of " + fileName + " has completed.");
+                    } else if (status == 'X') {
+                        System.out.println("File not found on server.");
+                    }
+
+                }
+                else {
+                    int status = in.read();
+                    if (status == 'S') {
+                        System.out.println("File successfully deleted.");
+                    } else if (status == 'F') {
+                        System.out.println("Could not delete file.");
+                    } else if (status == 'R') {
+                        System.out.println("File successfully renamed.");
+                    } else if (status == 'N') {
+                        System.out.println("Failed to rename file.");
+                    }
+                }
+            }
+        }
     }
-    String serverIP = args[0];
-    int serverPort = Integer.parseInt(args[1]);
 
-    Scanner keyboard = new Scanner(System.in);
-    boolean keepGoing = true;
-    while (keepGoing) {
-        menu();
-        String input = keyboard.nextLine();
-        if (input.equals("6")){
-            break;
-        }
-        byte[] data = input.getBytes();
-        // establish a connection w/ the server
-        Socket socket = new Socket(serverIP, serverPort);
-
-        InputStream in = socket.getInputStream();
-        OutputStream out = socket.getOutputStream();
-
-        if (input.equals("1")) {
-            out.write(data);
-        }
-        else if (input.equals("2")) {
-            String message;
-            System.out.print("Enter File name to Delete: ");
-            String fileName = keyboard.nextLine();
-            message = "2" + ":" + fileName;
-            out.write(message.getBytes());
-        }
-        else if (input.equals("3")) {
-            String message;
-            System.out.print("Current File: ");
-            String currentFile = keyboard.nextLine();
-            System.out.print("New Name: ");
-            String newName = keyboard.nextLine();
-            message = "3" + ":" + currentFile + ":" + newName;
-            out.write(message.getBytes());
-        }
-
-        // trigger the special signal to the server,
-        // letting server get out of its while loop
-        socket.shutdownOutput();
-
-        int bytesRead;
-        String reply = "";
-        byte[] buffer = new byte[1024];
-        while ((bytesRead = in.read(buffer)) != -1) { // stops when servers socket closes
-            reply += new String(buffer, 0, bytesRead);
-        }
-
-        if (reply.equals("S")) {
-            System.out.println("File Successfully Deleted");
-        }
-        else if (reply.equals("F")){
-            System.out.println("Could not delete File");
-        }
-        else if (reply.equals("R")){
-            System.out.println("File successfully renamed");
-        }
-        else if (reply.equals("N")){
-            System.out.println("Failed to rename file");
-        }
-        else {
-            System.out.println(reply);
-        }
+    public static void menu() {
+        System.out.println("Please pick an option:");
+        System.out.print("1: List\n2. Delete\n3. Rename\n4. Download\n5. Upload\n6. Quit\nEnter your choice: ");
     }
-}
-
-public static void menu() {
-    System.out.println("Please pick an option:");
-    System.out.print("1: List\n2. Delete\n3. Rename\n4. Download\n5. Upload\n6. Quit\nEnter Your choice: ");
-}
 }
