@@ -67,6 +67,11 @@ public class TCPServer {
                     String fileName = parts[1];
                     deleteServerFile(fileName, out);
                 }
+                else if (command.equals("3")) {
+                    String fileName = parts[1];
+                    String newFileName = parts[2];
+                    renameServerFile(fileName, newFileName, out);
+                }
 
                 listenSocket.close();
 
@@ -75,7 +80,7 @@ public class TCPServer {
             }
         }
 
-        public void listServerFiles(OutputStream out) {
+        public void listServerFiles(OutputStream out) { // issue printing all file names
             File[] files = serverFiles.listFiles();
 
             for (int i = 0; i < files.length; i++) {
@@ -102,6 +107,24 @@ public class TCPServer {
                 out.write(status.getBytes());
             }
         }
+
+        public void renameServerFile(String fileName, String newFileName, OutputStream out) throws IOException {
+            File initialName = new File(serverFiles + "/" + fileName);
+            File newName = new File(serverFiles + "/" + newFileName);
+
+            boolean isRenamed = initialName.renameTo(newName);
+            String status = "";
+
+            if (isRenamed) {
+                status = "S";
+                out.write(status.getBytes());
+            }
+            else {
+                status = "F";
+                out.write(status.getBytes());
+            }
+        }
+
     }
 
     private static class KeyboardMonitor implements Runnable {
@@ -127,4 +150,3 @@ public class TCPServer {
         }
     }
 }
-
