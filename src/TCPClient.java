@@ -142,13 +142,13 @@ public class TCPClient {
                                 fos.write(buffer, 0, bytesRead);
                             }
                         }
-                        System.out.println("Download of " + fileName + " has completed.");
+                        System.out.println("\nFile successfully downloaded");
                     } else if (status == 'X') {
                         System.out.println("File not found on server.");
                     }
                 } else {
                     if (status == 'U') {
-                        System.out.println("File successfully uploaded.");
+                        System.out.println("\nFile successfully uploaded.");
                     } else {
                         System.out.println("Could not upload file.");
                     }
