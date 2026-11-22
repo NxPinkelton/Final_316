@@ -21,7 +21,6 @@ static void main(String[] args) throws IOException {
         if (input.equals("6")){
             break;
         }
-
         byte[] data = input.getBytes();
         // establish a connection w/ the server
         Socket socket = new Socket(serverIP, serverPort);
@@ -33,10 +32,19 @@ static void main(String[] args) throws IOException {
             out.write(data);
         }
         else if (input.equals("2")) {
-            String message = "";
-            System.out.println("Enter File name to Delete: ");
+            String message;
+            System.out.print("Enter File name to Delete: ");
             String fileName = keyboard.nextLine();
             message = "2" + ":" + fileName;
+            out.write(message.getBytes());
+        }
+        else if (input.equals("3")) {
+            String message;
+            System.out.print("Current File: ");
+            String currentFile = keyboard.nextLine();
+            System.out.print("New Name: ");
+            String newName = keyboard.nextLine();
+            message = "3" + ":" + currentFile + ":" + newName;
             out.write(message.getBytes());
         }
 
@@ -57,6 +65,12 @@ static void main(String[] args) throws IOException {
         else if (reply.equals("F")){
             System.out.println("Could not delete File");
         }
+        else if (reply.equals("R")){
+            System.out.println("File successfully renamed");
+        }
+        else if (reply.equals("N")){
+            System.out.println("Failed to rename file");
+        }
         else {
             System.out.println(reply);
         }
@@ -65,6 +79,6 @@ static void main(String[] args) throws IOException {
 
 public static void menu() {
     System.out.println("Please pick an option:");
-    System.out.println("1: List\n2. Delete\n3. Rename\n4. Download\n5. Upload\n6. Quit\nEnter Your choice: ");
+    System.out.print("1: List\n2. Delete\n3. Rename\n4. Download\n5. Upload\n6. Quit\nEnter Your choice: ");
 }
 }

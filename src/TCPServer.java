@@ -67,6 +67,11 @@ public class TCPServer {
                     String fileName = parts[1];
                     deleteServerFile(fileName, out);
                 }
+                else if (command.equals("3")) {
+                    String currentFile = parts[1];
+                    String newName = parts[2];
+                    renameFile(currentFile,newName,out);
+                }
 
                 listenSocket.close();
 
@@ -95,20 +100,29 @@ public class TCPServer {
 
         public void deleteServerFile(String fileName, OutputStream out) throws IOException {
             File fileToDelete = new File(serverFiles + "/" + fileName);
-
             boolean isDeleted = fileToDelete.delete();
-            String status = "";
 
             if (isDeleted) {
-                status = "S";
-                out.write(status.getBytes());
+                out.write("S".getBytes());
             }
             else {
-                status = "F";
-                out.write(status.getBytes());
+                out.write("F".getBytes());
+            }
+        }
+
+        public void renameFile(String currentFileName, String newName, OutputStream out) throws IOException {
+            File currentFile = new File(serverFiles, currentFileName);
+            File newFile = new File(serverFiles, newName);
+
+            if (!newFile.exists() && currentFile.renameTo(newFile)) {
+                out.write("R".getBytes());
+            }
+            else {
+                out.write("N".getBytes());
             }
         }
     }
+
 
     private static class KeyboardMonitor implements Runnable {
         private final ServerSocket clientSocket;
