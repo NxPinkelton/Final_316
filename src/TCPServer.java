@@ -10,7 +10,7 @@ import java.util.concurrent.Executors;
 public class TCPServer {
     protected static File serverFiles = new File("ServerFiles"); //?
 
-    static void main(String[] args)  {
+    static void main()  {
         int serverPort = 3000;
         int numThreads = 10;
         ExecutorService es = Executors.newFixedThreadPool(numThreads);
@@ -18,8 +18,7 @@ public class TCPServer {
         try (ServerSocket listenSocket = new ServerSocket(serverPort)){ // try with resource!
             es.submit(new KeyboardMonitor(listenSocket));
 
-            boolean keepGoing = true;
-            while (keepGoing) {
+            while (true) {
                 // wait for a client to connect
                 Socket clientSocket = listenSocket.accept();
                 es.submit(new ClientHandler(clientSocket));

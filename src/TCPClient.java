@@ -5,7 +5,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 public class TCPClient {
-    public static void main(String[] args) throws IOException {
+    static void main(String[] args) throws IOException {
         if (args.length != 2) {
             System.out.println("Need two arguments: serverIP and serverPort.");
             return;
@@ -17,9 +17,7 @@ public class TCPClient {
         int numThreads = 10;
         ExecutorService es = Executors.newFixedThreadPool(numThreads);
 
-        boolean keepGoing = true;
-
-        while (keepGoing) {
+        while (true) {
             menu();
             String input = keyboard.nextLine().trim();
             if (input.equals("6")) {
@@ -32,7 +30,7 @@ public class TCPClient {
             }
 
             String message = "";
-            String fileName = "";
+            String fileName;
 
             if (input.equals("1")) {
                 message = "1";
@@ -49,7 +47,7 @@ public class TCPClient {
             } else if (input.equals("4")) {
                 System.out.print("Enter file name to download: ");
                 fileName = keyboard.nextLine().trim();
-                es.submit(new TransferTask(serverIP, serverPort, input, fileName));
+                es.submit(new FileTasks(serverIP, serverPort, input, fileName));
                 continue;
             } else if (input.equals("5")) {
                 System.out.print("Enter file name to upload: ");
@@ -57,7 +55,7 @@ public class TCPClient {
 
                 File fileToSend = new File("ClientFiles", fileName);
                 if (fileToSend.exists() && !fileToSend.isDirectory()) {
-                    es.submit(new TransferTask(serverIP, serverPort, input, fileName));
+                    es.submit(new FileTasks(serverIP, serverPort, input, fileName));
                 } else {
                     System.out.println("File not found");
                 }
@@ -98,13 +96,13 @@ public class TCPClient {
         es.shutdown();
     }
 
-    private static class TransferTask implements Runnable {
+    private static class FileTasks implements Runnable {
         private final String serverIP;
         private final int serverPort;
         private final String command;   // "4" = download, "5" = upload
         private final String fileName;
 
-        private TransferTask(String serverIP, int serverPort, String command, String fileName) {
+        private FileTasks(String serverIP, int serverPort, String command, String fileName) {
             this.serverIP = serverIP;
             this.serverPort = serverPort;
             this.command = command;
