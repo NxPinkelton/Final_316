@@ -1,9 +1,11 @@
 import java.io.*;
 import java.net.Socket;
 import java.util.Scanner;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class TCPClient {
-    static void main(String[] args) throws IOException {
+    public static void main(String[] args) throws IOException {
         if (args.length != 2) {
             System.out.println("Need two arguments: serverIP and serverPort.");
             return;
@@ -12,13 +14,14 @@ public class TCPClient {
         int serverPort = Integer.parseInt(args[1]);
 
         Scanner keyboard = new Scanner(System.in);
+        int numThreads = 10;
+        ExecutorService es = Executors.newFixedThreadPool(numThreads);
 
         boolean keepGoing = true;
 
         while (keepGoing) {
             menu();
             String input = keyboard.nextLine().trim();
-            //checks for valid inputs
             if (input.equals("6")) {
                 break;
             }
@@ -31,7 +34,6 @@ public class TCPClient {
             String message = "";
             String fileName = "";
 
-            //handles all the data to send to the sever
             if (input.equals("1")) {
                 message = "1";
             } else if (input.equals("2")) {
@@ -47,19 +49,19 @@ public class TCPClient {
             } else if (input.equals("4")) {
                 System.out.print("Enter file name to download: ");
                 fileName = keyboard.nextLine().trim();
-                message = "4:" + fileName;
+                es.submit(new TransferTask(serverIP, serverPort, input, fileName));
+                continue;
             } else if (input.equals("5")) {
                 System.out.print("Enter file name to upload: ");
                 fileName = keyboard.nextLine().trim();
 
                 File fileToSend = new File("ClientFiles", fileName);
-
                 if (fileToSend.exists() && !fileToSend.isDirectory()) {
-                    message = "5:" + fileName + ":";
+                    es.submit(new TransferTask(serverIP, serverPort, input, fileName));
                 } else {
                     System.out.println("File not found");
-                    continue;
                 }
+                continue;
             }
 
 
@@ -68,21 +70,8 @@ public class TCPClient {
                 OutputStream out = socket.getOutputStream();
 
                 out.write(message.getBytes());
-
-                if (input.equals("5")) {
-                    try (FileInputStream fis = new FileInputStream(new File("ClientFiles", fileName))) {
-                        byte[] buffer = new byte[1024];
-                        int bytesRead;
-                        while ((bytesRead = fis.read(buffer)) != -1) {
-                            out.write(buffer, 0, bytesRead);
-                        }
-                    }
-                }
-
                 socket.shutdownOutput();
 
-
-                //handles all reply data
                 if (input.equals("1")) {
                     String reply = "";
                     byte[] buffer = new byte[1024];
@@ -91,15 +80,62 @@ public class TCPClient {
                         reply += new String(buffer, 0, bytesRead);
                     }
                     System.out.print(reply);
-
-                }
-
-                else if (input.equals("4")) {
+                } else {
                     int status = in.read();
-                    if (status == 'D') {
-                        File outFile = new File("ClientFiles", fileName);
+                    if (status == 'S') {
+                        System.out.println("File successfully deleted.");
+                    } else if (status == 'F') {
+                        System.out.println("Could not delete file.");
+                    } else if (status == 'R') {
+                        System.out.println("File successfully renamed.");
+                    } else if (status == 'N') {
+                        System.out.println("Failed to rename file.");
+                    }
+                }
+            }
+        }
 
-                        try (FileOutputStream fos = new FileOutputStream(outFile)) {
+        es.shutdown();
+    }
+
+    private static class TransferTask implements Runnable {
+        private final String serverIP;
+        private final int serverPort;
+        private final String command;   // "4" = download, "5" = upload
+        private final String fileName;
+
+        private TransferTask(String serverIP, int serverPort, String command, String fileName) {
+            this.serverIP = serverIP;
+            this.serverPort = serverPort;
+            this.command = command;
+            this.fileName = fileName;
+        }
+
+        public void run() {
+            try (Socket socket = new Socket(serverIP, serverPort)) {
+                InputStream in = socket.getInputStream();
+                OutputStream out = socket.getOutputStream();
+
+                // send the request
+                if (command.equals("4")) {
+                    out.write(("4:" + fileName).getBytes());
+                } else {
+                    out.write(("5:" + fileName + ":").getBytes());
+                    try (FileInputStream fis = new FileInputStream(new File("ClientFiles", fileName))) {
+                        byte[] buffer = new byte[1024];
+                        int bytesRead;
+                        while ((bytesRead = fis.read(buffer)) != -1) {
+                            out.write(buffer, 0, bytesRead);
+                        }
+                    }
+                }
+                socket.shutdownOutput();
+
+                // handle the reply
+                int status = in.read();
+                if (command.equals("4")) {
+                    if (status == 'D') {
+                        try (FileOutputStream fos = new FileOutputStream(new File("ClientFiles", fileName))) {
                             byte[] buffer = new byte[1024];
                             int bytesRead;
                             while ((bytesRead = in.read(buffer)) != -1) {
@@ -107,33 +143,18 @@ public class TCPClient {
                             }
                         }
                         System.out.println("Download of " + fileName + " has completed.");
-                    }
-                    else if (status == 'X') {
+                    } else if (status == 'X') {
                         System.out.println("File not found on server.");
                     }
-                }
-
-                else {
-                    int status = in.read();
-                    if (status == 'S') {
-                        System.out.println("File successfully deleted.");
-                    }
-                    else if (status == 'F') {
-                        System.out.println("Could not delete file.");
-                    }
-                    else if (status == 'R') {
-                        System.out.println("File successfully renamed.");
-                    }
-                    else if (status == 'N') {
-                        System.out.println("Failed to rename file.");
-                    }
-                    else if (status == 'U') {
+                } else {
+                    if (status == 'U') {
                         System.out.println("File successfully uploaded.");
-                    }
-                    else {
+                    } else {
                         System.out.println("Could not upload file.");
                     }
                 }
+            } catch (IOException e) {
+                e.printStackTrace();
             }
         }
     }
