@@ -48,7 +48,7 @@ static void main(String[] args) throws IOException {
         String reply = "";
         byte[] buffer = new byte[1024];
         while ((bytesRead = in.read(buffer)) != -1) { // stops when servers socket closes
-            reply = new String(buffer, 0, bytesRead);
+            reply += new String(buffer, 0, bytesRead);
         }
 
         if (reply.equals("S")) {

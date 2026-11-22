@@ -54,7 +54,7 @@ public class TCPServer {
                 int bytesRead;
 
                 while ((bytesRead = in.read(buffer)) != -1) { // -1 means that bytes r done being read
-                    message = new String(buffer, 0, bytesRead);
+                    message += new String(buffer, 0, bytesRead);
                 }
                 String[] parts = message.split(":");
                 String command = parts[0];
@@ -80,7 +80,13 @@ public class TCPServer {
 
             for (int i = 0; i < files.length; i++) {
                 try {
-                    out.write(files[i].getName().getBytes());
+                    String fileName = files[i].getName();
+                    if (fileName.charAt(0) == '.') {
+                        continue;
+                    }
+                    else {
+                        out.write((files[i].getName() + "\n").getBytes());
+                    }
                 } catch (IOException e) {
                     throw new RuntimeException(e);
                 }
