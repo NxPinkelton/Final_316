@@ -41,37 +41,30 @@ public class TCPServer {
 
         public void run() {
             try {
-                String message = "";
-                byte[] reply;
-
                 InputStream in = listenSocket.getInputStream();
                 OutputStream out = listenSocket.getOutputStream();
 
-                byte[] buffer = new byte[1024];
-                int bytesRead;
+                String command = readUntilColon(in);
 
-                while ((bytesRead = in.read(buffer)) != -1) { // -1 means that bytes r done being read
-                    message += new String(buffer, 0, bytesRead);
-                }
-                String[] parts = message.split(":");
-                String command = parts[0];
-
-                // Start of menu
                 if (command.equals("1")) {
                     listServerFiles(out);
                 }
-                else if (command.equals("2")){ // Parse client's response, get trigger and file name
-                    String fileName = parts[1];
+                else if (command.equals("2")){
+                    String fileName = readUntilColon(in);
                     deleteServerFile(fileName, out);
                 }
                 else if (command.equals("3")) {
-                    String currentFile = parts[1];
-                    String newName = parts[2];
-                    renameFile(currentFile,newName,out);
+                    String currentFile = readUntilColon(in);
+                    String newName = readUntilColon(in);
+                    renameFile(currentFile, newName, out);
                 }
                 else if (command.equals("4")) {
-                    String fileName = parts[1];
+                    String fileName = readUntilColon(in);
                     downloadFile(fileName, out);
+                }
+                else if (command.equals("5")){
+                    String fileName = readUntilColon(in);
+                    uploadFile(fileName, out, in);
                 }
 
                 listenSocket.close();
@@ -104,10 +97,10 @@ public class TCPServer {
             boolean isDeleted = fileToDelete.delete();
 
             if (isDeleted) {
-                out.write("S".getBytes());
+                out.write('S');
             }
             else {
-                out.write("F".getBytes());
+                out.write('F');
             }
         }
 
@@ -116,10 +109,10 @@ public class TCPServer {
             File newFile = new File(serverFiles, newName);
 
             if (!newFile.exists() && currentFile.renameTo(newFile)) {
-                out.write("R".getBytes());
+                out.write('R');
             }
             else {
-                out.write("N".getBytes());
+                out.write('N');
             }
         }
 
@@ -136,14 +129,36 @@ public class TCPServer {
                         out.write(buffer, 0, bytesRead);
                     }
                 }
-
             } else {
                 out.write('X');
             }
+        }
 
+        public void uploadFile(String fileName, OutputStream out, InputStream in) throws IOException {
+            File outFile = new File(serverFiles, fileName);
+
+            try (FileOutputStream fos = new FileOutputStream(outFile)) {
+                byte[] buffer = new byte[1024];
+                int bytesRead;
+                while ((bytesRead = in.read(buffer)) != -1) {
+                    fos.write(buffer, 0, bytesRead);
+                }
+                out.write('U');
+            } catch (IOException e) {
+                out.write('V');
+                e.printStackTrace();
+            }
         }
     }
 
+    private static String readUntilColon(InputStream in) throws IOException {
+        StringBuilder sb = new StringBuilder();
+        int input;
+        while ((input = in.read()) != -1 && input != ':') {
+            sb.append((char) input);
+        }
+        return sb.toString();
+    }
 
     private static class KeyboardMonitor implements Runnable {
         private final ServerSocket clientSocket;

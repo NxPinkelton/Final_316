@@ -34,24 +34,34 @@ public class TCPClient {
             //handles all the data to send to the sever
             if (input.equals("1")) {
                 message = "1";
-            }
-            else if (input.equals("2")) {
+            } else if (input.equals("2")) {
                 System.out.print("Enter file name to delete: ");
                 fileName = keyboard.nextLine().trim();
                 message = "2:" + fileName;
-            }
-            else if (input.equals("3")) {
+            } else if (input.equals("3")) {
                 System.out.print("Current file: ");
                 String currentFile = keyboard.nextLine().trim();
                 System.out.print("New name: ");
                 String newName = keyboard.nextLine().trim();
                 message = "3:" + currentFile + ":" + newName;
-            }
-            else if (input.equals("4")) {
+            } else if (input.equals("4")) {
                 System.out.print("Enter file name to download: ");
                 fileName = keyboard.nextLine().trim();
                 message = "4:" + fileName;
+            } else if (input.equals("5")) {
+                System.out.print("Enter file name to upload: ");
+                fileName = keyboard.nextLine().trim();
+
+                File fileToSend = new File("ClientFiles", fileName);
+
+                if (fileToSend.exists() && !fileToSend.isDirectory()) {
+                    message = "5:" + fileName + ":";
+                } else {
+                    System.out.println("File not found");
+                    continue;
+                }
             }
+
 
             try (Socket socket = new Socket(serverIP, serverPort)) {
                 InputStream in = socket.getInputStream();
@@ -59,7 +69,18 @@ public class TCPClient {
 
                 out.write(message.getBytes());
 
+                if (input.equals("5")) {
+                    try (FileInputStream fis = new FileInputStream(new File("ClientFiles", fileName))) {
+                        byte[] buffer = new byte[1024];
+                        int bytesRead;
+                        while ((bytesRead = fis.read(buffer)) != -1) {
+                            out.write(buffer, 0, bytesRead);
+                        }
+                    }
+                }
+
                 socket.shutdownOutput();
+
 
                 //handles all reply data
                 if (input.equals("1")) {
@@ -72,6 +93,7 @@ public class TCPClient {
                     System.out.print(reply);
 
                 }
+
                 else if (input.equals("4")) {
                     int status = in.read();
                     if (status == 'D') {
@@ -85,21 +107,31 @@ public class TCPClient {
                             }
                         }
                         System.out.println("Download of " + fileName + " has completed.");
-                    } else if (status == 'X') {
+                    }
+                    else if (status == 'X') {
                         System.out.println("File not found on server.");
                     }
-
                 }
+
                 else {
                     int status = in.read();
                     if (status == 'S') {
                         System.out.println("File successfully deleted.");
-                    } else if (status == 'F') {
+                    }
+                    else if (status == 'F') {
                         System.out.println("Could not delete file.");
-                    } else if (status == 'R') {
+                    }
+                    else if (status == 'R') {
                         System.out.println("File successfully renamed.");
-                    } else if (status == 'N') {
+                    }
+                    else if (status == 'N') {
                         System.out.println("Failed to rename file.");
+                    }
+                    else if (status == 'U') {
+                        System.out.println("File successfully uploaded.");
+                    }
+                    else {
+                        System.out.println("Could not upload file.");
                     }
                 }
             }
